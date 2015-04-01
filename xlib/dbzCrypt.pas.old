@@ -1,0 +1,167 @@
+unit dbzCrypt;
+{
+  Copyright (c) 2004, aa, Adrian H. & Inge DR.
+  Property of PT SOFTINDO Jakarta.
+  All rights reserved.
+
+  mailto:aa|AT|softindo|DOT|net,
+  http://delphi.softindo.net
+
+  Version: 1.0.0.000
+  Dated: 2005.01.01
+}
+
+interface
+// encrypt S without containing #0 in the result, useful for pchar
+// or database string field which does not accept #0 within string
+function NZDecrypt(const S: string): string;
+function NZEncrypt(const S: string): string;
+
+// indexed Nonzero encrypt. include additional index infomation
+// in the encrypted string. need additional 4 bytes as index
+// (encrypted string will be 4 characters longer than original)
+// useful to retain field index/order
+//
+// note:
+//   since index will be hi-stripped, 3 bytes wide, then max. value
+//   of index is: 128*128*128-1 = 2097151 (roughly 2 million)
+//   should be enough for most of database
+//   (it could be up to 268435455 if you're not using random salt-key)
+
+function NZidDecrypt(const S: string): string;
+function NZidEncrypt(const S: string; const ID: integer = 0): string;
+
+// NZ_PIX will be used as key seed generator
+const NZ_PIX: int64 = trunc(PI * 1E18);
+
+implementation
+uses Ordinals;
+
+function NZEncrypt(const S: string): string;
+var
+  i, l: integer;
+  Key: integer; //64;
+  b: byte;
+begin
+  l := length(S);
+  setlength(Result, l);
+  if l > 0 then begin
+    Key := l * NZ_PIX;
+    for i := l downto 1 do begin
+      b := ord(S[i]);
+      if b <> byte(Key) then b := b xor (Key);
+      Key := rol(Key, (b or 1));
+      Result[l - i + 1] := char(b);
+    end;
+  end;
+end;
+
+function NZDecrypt(const S: string): string;
+var
+  i, l: integer;
+  Key: integer; //int64;
+  b0, b: byte;
+begin
+  l := length(S);
+  setlength(Result, l);
+  if l > 0 then begin
+    Key := l * NZ_PIX;
+    for i := 1 to l do begin
+      b0 := ord(S[i]);
+      if b0 = byte(Key) then b := Key // do NOT forget byte(Key) typecast!
+      else b := b0 xor Key;
+      Key := rol(Key, (b0 or 1));
+      Result[l - i + 1] := char(b);
+    end;
+  end;
+end;
+
+type
+  TCrIDType = type integer; // decoded: (Key) + (3 * 7 bits)
+                            // max = 128*128*128-1 = 2097151
+const
+  PREFIXLEN = sizeof(TCrIDType);
+
+function getCrID(const ID: integer; OpenChar: char): integer; overload;
+const
+  ShiftMask = BitsperByte - 1;
+var
+  b1, b2, b3: byte;
+  Key: byte;
+begin
+  repeat Key := random(high(Key) + 1)
+  until (byte(Key) <> ord(OpenChar));
+  b1 := ID shr (ShiftMask * 0) and $7F shl 1 or 1;
+  b2 := ID shr (ShiftMask * 1) and $7F shl 1 or 1;
+  b3 := ID shr (ShiftMask * 2) and $7F shl 1 or 1;
+    // reversed order
+  Result := (byte(Key) shl 24) or (b1 shl 16) or (b2 shl 8) or b3
+end;
+
+function NZidDecrypt(const S: string): string; {$Q-} // no-overflow-checking
+var
+  i, l: integer;
+  Key: int64;
+  b0, b: byte;
+begin
+  l := length(S) - PREFIXLEN;
+  if l < 1 then Result := ''
+  else begin
+    setlength(Result, l);
+    move(S[1], I, sizeof(PREFIXLEN));
+    Key := I * NZ_PIX;
+    RandSeed := Key;
+    Key := Key * integer(Random(MaxInt));
+    for i := 1 to l do begin
+      b0 := ord(S[i + PREFIXLEN]);
+
+      //OK.
+      //if (Key and $60) > 0 then
+      //  b := b0 xor (Key and $9F)
+      //else b := b0 xor Key;
+
+      if b0 = byte(Key) then b := Key // do NOT forget byte(Key) typecast!
+      else b := b0 xor Key;
+
+      Key := rol(Key, (b0 or 1));
+      Result[l - i + 1] := char(b);
+    end;
+  end;
+end;
+
+function NZidEncrypt(const S: string; const ID: integer = 0): string; {$Q-} // no-overflow-checking
+var
+  i, l: integer;
+  Key: int64;
+  b: byte;
+begin
+  l := length(S);
+  if l < 1 then Result := ''
+  else begin
+    setlength(Result, l + PREFIXLEN);
+    I := getCrID(ID, S[l]);
+    move(I, Result[1], PREFIXLEN);
+    Key := I * NZ_PIX;
+    RandSeed := Key;
+    Key := Key * integer(Random(MaxInt));
+    for i := l downto 1 do begin
+      b := ord(S[i]);
+
+      //OK.
+      //if (Key and $60) > 0 then
+      //  b := b xor (Key and $9F)
+      //else b := b xor Key;
+
+      //b := b xor Key;
+      //if b = 0 then b := Key;
+
+      if b <> byte(Key) then b := b xor (Key);
+
+      Key := rol(Key, (b or 1));
+      Result[l - i + PREFIXLEN + 1] := char(b);
+    end;
+  end;
+end;
+
+end.
+

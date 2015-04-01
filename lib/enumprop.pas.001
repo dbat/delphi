@@ -1,0 +1,346 @@
+unit enumprop;
+{
+  version 1.0.0.0
+  ------------------------------------------------
+  Copyright (c) 2004, aa, Adrian Hafizh & Inge DR.
+  Property of PT SOFTINDO Jakarta.
+  All rights reserved.
+
+  mail,to:@[zero_inge]AT@-y.a,h.o.o.@DOTcom,
+  mail,to:@[aa]AT@-s.o.f.t,i.n.d.o.@DOTnet
+  http://delphi.softindo.net
+  ------------------------------------------------
+
+  sometimes (or many), we just want to examine properties
+  at run time. this little helper will do the job nicely.
+
+  note:
+    for event to be correctly determined, the Owner argument
+    should be supplied properly (usually it is the form container,
+    or simply Self in the main form).
+
+  example:
+    procedure TForm1.Button1Click(Sender: TObject);
+    var
+      i: integer;
+      L: TStringList;
+    begin
+      L := TStringList.Create;
+      try
+        for i := 0 to ComponentCount - 1 do begin
+          L.Add(Components[i].Name);
+          enumComponentProperties(Components[i], L, Self);
+          L.Add('');
+        end;
+        //ClipBoard.AsText := L.Text;
+        showmessage(L.Text);
+      finally
+        L.Free;
+      end;
+    end;
+
+}
+
+interface
+uses Classes;
+
+procedure enumControls(const Component: TComponent; const Strings: TStrings);
+procedure enumComponents(const Component: TComponent; const Strings: TStrings);
+procedure enumComponentProperties(const Instance: TObject;
+  const Strings: TStrings; const Owner: TObject = nil);
+
+implementation
+uses SysUtils, TypInfo, Controls; //, Controls, TypInfo, Dialogs, Windows, messages, Forms;
+
+type tMyControl = class(tControl);
+
+procedure enumControls(const Component: TComponent; const Strings: TStrings);
+var
+  i: Integer;
+begin
+  if Component is TWinControl then
+    with Component as TWinControl do
+      for i := 0 to ControlCount - 1 do
+        with tMyControl(Controls[i]) do
+          Strings.Add(Caption + ' ' + Name + ': ' + ClassName)
+end;
+
+procedure enumComponents(const Component: TComponent; const Strings: TStrings);
+var
+  i: Integer;
+begin
+  with Component do
+    for i := 0 to ComponentCount - 1 do
+      with Components[i] do
+        Strings.Add(Name + ': ' + ClassName)
+end;
+
+procedure enumComponentProperties(const Instance: TObject;
+  const Strings: TStrings; const Owner: TObject = nil);
+
+var
+  Root: TObject;
+
+  procedure enumObjectProperties(const Instance: TObject; const Strings: TStrings;
+    const Owner: TObject = nil; const Level: integer = 0);
+
+  const
+    TypeKindName: array[TTypeKind] of string = (
+      'Unknown', 'Integer', 'Char', 'Enumeration', 'Float',
+      'String', 'Set', 'Class', 'Method', 'WChar',
+      'LString', 'WString', 'Variant', 'Array', 'Record',
+      'Interface', 'Int64', 'DynArray'
+      );
+    MethodKindName: array[TMethodKind] of string = ('procedure', 'function',
+      'constructor', 'destructor', 'Class procedure', 'Class function',
+    { Obsolete }'Safe procedure call', 'Safe function call');
+
+  resourcestring SInvalidPropertyType = 'Invalid property type: %s';
+
+  var
+    Count, Size, i, k, p: Integer;
+    PropList: PPropList;
+    PropInfo: PPropInfo;
+    fTypeInfo: PTypeInfo;
+    fTypeData: PTypeData;
+    fTypeInfos: PTypeInfo;
+    fTypeDatas: PTypeData;
+    fTypeKind: TTypeKind;
+    m: TMethod;
+    Obj: TObject;
+    PropName, PropTypeName, PropTypeKindName, PropValue, enums: string;
+    //AnyClass: TClass;
+  begin
+    if not assigned(Instance) then exit;
+
+    Count := GetPropList(Instance.ClassInfo, tkAny, nil);
+    if Count = 0 then begin
+
+    end;
+    Size := Count * SizeOf(Pointer);
+    GetMem(PropList, Size);
+    try
+      Count := GetPropList(Instance.ClassInfo, tkAny, PropList);
+      for i := 0 to Count - 1 do begin
+        PropInfo := PropList^[i];
+        PropName := PropInfo^.Name;
+        fTypeInfo := PropInfo^.PropType^;
+        PropTypeName := PropInfo^.PropType^^.Name;
+        fTypeKind := PropInfo^.PropType^^.Kind;
+        PropTypeKindName := TypeKindName[fTypeKind];
+
+        PropValue := ''; enums := ''; p := 0;
+        fTypeData := GetTypeData(fTypeInfo);
+        case fTypeKind of
+        //case fPropInfo^.PropType^^.Kind of
+          tkInteger: PropValue := inttoStr(GetOrdProp(Instance, PropInfo));
+          tkChar: PropValue := Char(GetOrdProp(Instance, PropInfo));
+          tkWChar: PropValue := WideChar(GetOrdProp(Instance, PropInfo));
+          tkClass: begin
+              //p := GetOrdProp(Instance, PropInfo);
+              p := GetOrdProp(Instance, PropInfo);
+              if p = 0 then propValue := 'nil'
+              else propValue := inttoHex(p, 8) + 'H';
+            end;
+          tkEnumeration: begin
+              PropValue := GetEnumProp(Instance, PropInfo);
+              if fTyPeData^.BaseType^ = TypeInfo(Boolean) then
+                PropTypeKindName := 'Boolean'
+              else
+                for k := fTypeData^.MinValue to fTypeData^.MaxValue do begin
+                  if enums <> '' then enums := enums + ',';
+                  enums := enums + GetEnumName(fTypeInfo, k);
+                end;
+            end;
+          tkSet: begin
+              PropValue := GetSetProp(Instance, PropInfo, TRUE);
+              GetSetProp(Instance, PropInfo, TRUE);
+              fTypeInfos := fTypeData^.CompType^;
+              fTypeDatas := GetTypeData(fTypeInfos);
+              for k := fTypeDatas.MinValue to fTypeDatas.MaxValue do begin
+                if enums <> '' then enums := enums + ',';
+                enums := enums + GetEnumName(fTypeInfos, k);
+              end;
+            end;
+          tkFloat: PropValue := FloatToStr(GetFloatProp(Instance, PropInfo));
+          tkMethod: begin
+              PropTypeKindName := MethodKindName[fTypeData^.MethodKind];
+              m := getMethodProp(Instance, PropInfo);
+              if not assigned(m.Code) then propvalue := 'nil'
+              else if assigned(Root) then propvalue := Root.methodname(m.Code)
+              else propvalue := inttoHex(GetOrdProp(Instance, PropInfo), 8) + 'H';
+              if propvalue = '' then propvalue := 'unknown';
+            end;
+          tkString, tkLString, tkWString: PropValue := GetStrProp(Instance, PropInfo);
+          tkVariant: PropValue := VarToStr(GetVariantProp(Instance, PropInfo));
+          tkInt64: PropValue := inttoHex(GetInt64Prop(Instance, PropInfo), 16);
+        else raise EPropertyConvertError.CreateResFmt(@SInvalidPropertyType, [PropInfo.PropType^^.Name]);
+        end;
+
+        if enums <> '' then enums := 'of (' + enums + ')';
+        Strings.Add(stringOfChar(' ', Level * 2) + Format('[%s] %s: %s = %s %s',
+          [PropTypeKindName, PropName, PropTypeName, PropValue, enums]));
+
+        if fTypeKind = tkClass then begin
+          Obj := nil;
+          if PropInfo <> nil then // delete later-
+            if fTypeInfo <> nil then // used only to help debugging
+              if fTypeData <> nil then // (retain variables' value)
+                Obj := TObject(p);
+          //if fTypeData^.
+          enumObjectProperties(Obj, Strings, Root, Level + 1);
+        end;
+      end;
+    finally
+      FreeMem(PropList);
+    end;
+  end;
+begin
+  Root := Owner;
+  if not assigned(Root) then Root := Instance;
+  enumObjectProperties(Instance, Strings, Root, 0);
+end;
+
+function SimplePos(const pattern, text: ANSIString): integer;
+var i, j, k, m, n: integer;
+  skip: packed array[byte] of integer;
+  found: boolean;
+begin
+  Result := 0; found := FALSE;
+  m := length(pattern);
+  if m = 0 then begin
+    Result := 1;
+    found := TRUE;
+  end;
+
+  for k := 0 to high(byte) do skip[k] := m;
+  for k := 1 to m - 1 do skip[ord(pattern[k])] := m - k;
+
+  k := m; n := length(text);
+
+  while not found and (k <= n) do begin
+    i := k;
+    j := m;
+    while (j >= 1) do
+      if text[i] <> pattern[j] then j := -1
+      else begin
+        j := j - 1;
+        i := i - 1;
+      end;
+    if j = 0 then begin
+      Result := i + 1;
+      found := TRUE;
+    end;
+    k := k + skip[ord(text[k])];
+  end;
+end;
+
+// Converting method pointers into function pointers
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Often you need a function pointer for a callback function.
+// But what, if you want to specify a method as an callback?
+// Converting a method pointer to a function pointer is not a
+// trivial task; both types are incomatible with each other.
+// Although you have the possibility to convert like this
+// "@TClass.SomeMethod", this is more a hack than a solution,
+// because it restricts the use of this method to some kind
+// of a class function, where you cannot access instance
+// variables. If you fail to do so, you'll get a wonderful gpf.
+// But there is a better solution: run time code generation!
+// Just allocate an executeable memory block and write 4 (four)
+// machine code instructions into it: 2 (two) instructions loads
+// the pairs of pointers of the method pointer (CODE and DATA)
+// into the registers, one calls the method via the code pointer,
+// and the last is just a return. Now you can use this pointer
+// to the allocated memory as a plain funtion pointer, but in fact
+// you are calling a method for a specific instance of a Class.
+
+type TMyMethod = procedure of object;
+
+function MakeProcInstance(method: tmethod): pointer;
+begin
+  GetMem(Result, 15); // allocate memory
+  asm
+  // mov ecx,
+    mov byte ptr [eax], $B9
+    mov ecx, method.DATA
+    mov dword ptr [eax+$01], ecx
+  // pop edx
+    mov byte ptr [eax+$05], $5A
+  // push ecx
+    mov byte ptr [eax+$06], $51
+  // push edx
+    mov byte ptr [eax+$07], $52
+  // mov ecx,
+    mov byte ptr [eax+$08], $B9
+    mov ecx, method.CODE
+    mov dword ptr [eax+$09], ecx
+  // jmp ecx
+    mov byte ptr [eax+$0D], $FF
+    mov byte ptr [eax+$0E], $E1
+  end;
+end;
+
+procedure FreeProcInstance(ProcInstance: Pointer);
+begin
+  // free memory
+  freemem(ProcInstance, 15);
+end;
+
+// After all, you should not forget to release the allocated memory.
+// "TMyMethod" can be modified according your specific needs, e.g.
+// add some parameters for a WindowProc.
+// N.B.: Yes, I know, Delphi has those "MakeProcInstance" function
+// in its forms unit. But this works a little bit different, has much
+// more overhead, and most important, you have to use the forms unit,
+// which increases the size of your exe drastically, if all other code
+// doesn't use the VCL (e.g. in a fullscreen DirectX/OpenGl app).
+
+//TEvents occur during the life cycle of a form:
+//
+// OnCreate
+// OnShow
+// OnPaint
+// OnActivate
+// OnResize
+// OnPaint
+// OnCloseQuery
+// OnClose
+// OnDeactivate
+// OnHide
+// OnDestroy
+
+// //...Prevent Windows Shut Down?
+//
+// The WM_QUERYENDSESSION message is sent to all applications
+// when the user chooses to end the session or when an application
+// calls the ExitWindows function.
+//
+// If any application returns zero, the session is not ended.
+// The system stops sending WM_QUERYENDSESSION messages as soon
+// as one application returns zero.
+//
+// After processing this message, the system sends the
+// WM_ENDSESSION message with the wParam parameter set
+// to the results of the WM_QUERYENDSESSION message.
+//
+// Windows NT/2000/XP: When an application returns TRUE for
+// this message, it receives the WM_ENDSESSION message and
+// it is terminated, regardless of how the other applications
+// respond to the WM_QUERYENDSESSION message.
+//
+// Windows 95/98/Me: After all applications return TRUE for this
+// message, they receive the WM_ENDSESSION and they are terminated.
+//
+//private
+//procedure WMQueryEndSession(var Msg: TWMQueryEndSession); message WM_QueryEndSession;
+//end;
+//
+//procedure WMQueryEndSession(var msg: TWMQueryEndSession);
+//begin
+//  msg.result := integer(MessageDlg('Close Windows now?',
+//    mtConfirmation, [mbYes, mbNo], 0) = mrYes);
+//end;
+
+end.
+

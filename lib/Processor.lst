@@ -1,0 +1,256 @@
+00h Default
+01h Other
+02h Unknown
+03h 8086
+04h 80286
+05h Intel386(TM) processor
+06h Intel486(TM) processor
+07h 8087
+08h 80287
+09h 80387
+0Ah 80487
+0Bh Pentium(R) processor Family
+0Ch Pentium(R) Pro processor
+0Dh Pentium(R) II processor
+0Eh Pentium(R) processor with MMX(TM) technology
+0Fh Celeron(TM) processor
+10h Pentium(R) II Xeon(TM) processor
+11h Pentium(R) III processor
+12h M1 Family
+13h M2 Family
+14h Unnasigned_14
+15h Unnasigned_15
+16h Unnasigned_16
+17h Unnasigned_17
+18h AMD Duron(TM) Processor Family
+19h K5 Family
+1Ah K6 Family
+1Bh K6-2
+1Ch K6-3
+1Dh AMD Athlon(TM) Processor Family
+1Eh AMD2900 Family
+1Fh K6-2+
+20h Power PC Family
+21h Power PC 601
+22h Power PC 603
+23h Power PC 603+
+24h Power PC 604
+25h Power PC 620
+26h Power PC x704
+27h Power PC 750
+28h Unnasigned_28
+29h Unnasigned_29
+2Ah Unnasigned_2A
+2Bh Unnasigned_2B
+2Ch Unnasigned_2C
+2Dh Unnasigned_2D
+2Eh Unnasigned_2E
+2Fh Unnasigned_2F
+30h Alpha Family3
+31h Alpha 21064
+32h Alpha 21066
+33h Alpha 21164
+34h Alpha 21164PC
+35h Alpha 21164a
+36h Alpha 21264
+37h Alpha 21364
+38h Unnasigned_38
+39h Unnasigned_39
+3Ah Unnasigned_3A
+3Bh Unnasigned_3B
+3Ch Unnasigned_3C
+3Dh Unnasigned_3D
+3Eh Unnasigned_3E
+3Fh Unnasigned_3F
+40h MIPS Family
+41h MIPS R4000
+42h MIPS R4200
+43h MIPS R4400
+44h MIPS R4600
+45h MIPS R10000
+46h Unnasigned_46
+47h Unnasigned_47
+48h Unnasigned_48
+49h Unnasigned_49
+4Ah Unnasigned_4A
+4Bh Unnasigned_4B
+4Ch Unnasigned_4C
+4Dh Unnasigned_4D
+4Eh Unnasigned_4E
+4Fh Unnasigned_4F
+50h SPARC Family
+51h SuperSPARC
+52h microSPARC II
+53h microSPARC IIep
+54h UltraSPARC
+55h UltraSPARC II
+56h UltraSPARC IIi
+57h UltraSPARC III
+58h UltraSPARC IIIi
+59h Unnasigned_59
+5Ah Unnasigned_5A
+5Bh Unnasigned_5B
+5Ch Unnasigned_5C
+5Dh Unnasigned_5D
+5Eh Unnasigned_5E
+5Fh Unnasigned_5F
+60h 68040 Family
+61h 68xxx
+62h 68000
+63h 68010
+64h 68020
+65h 68030
+66h Unnasigned_66
+67h Unnasigned_67
+68h Unnasigned_68
+69h Unnasigned_69
+6Ah Unnasigned_6A
+6Bh Unnasigned_6B
+6Ch Unnasigned_6C
+6Dh Unnasigned_6D
+6Eh Unnasigned_6E
+6Fh Unnasigned_6F
+70h Hobbit Family
+71h Unnasigned_71
+72h Unnasigned_72
+73h Unnasigned_73
+74h Unnasigned_74
+75h Unnasigned_75
+76h Unnasigned_76
+77h Unnasigned_77
+78h Crusoe(TM) TM5000 Family
+79h Crusoe(TM) TM3000 Family
+7Ah Efficeon(TM) TM8000 Family
+7Bh Unnasigned_7B
+7Ch Unnasigned_7C
+7Dh Unnasigned_7D
+7Eh Unnasigned_7E
+7Fh Unnasigned_7F
+80h Weitek
+81h Unnasigned_81
+82h Itanium(TM) processor
+83h AMD Athlon(TM) 64 Processor Family
+84h AMD Opteron(TM) Processor Family
+85h Unnasigned_85
+86h Unnasigned_86
+87h Unnasigned_87
+88h Unnasigned_88
+89h Unnasigned_89
+8Ah Unnasigned_8A
+8Bh Unnasigned_8B
+8Ch Unnasigned_8C
+8Dh Unnasigned_8D
+8Eh Unnasigned_8E
+8Fh Unnasigned_8F
+90h PA-RISC Family
+91h PA-RISC 8500
+92h PA-RISC 8000
+93h PA-RISC 7300LC
+94h PA-RISC 7200
+95h PA-RISC 7100LC
+96h PA-RISC 7100
+97h Unnasigned_97
+98h Unnasigned_98
+99h Unnasigned_99
+9Ah Unnasigned_9A
+9Bh Unnasigned_9B
+9Ch Unnasigned_9C
+9Dh Unnasigned_9D
+9Eh Unnasigned_9E
+9Fh Unnasigned_9F
+A0h V30 Family
+A1h Unnasigned_A1
+A2h Unnasigned_A2
+A3h Unnasigned_A3
+A4h Unnasigned_A4
+A5h Unnasigned_A5
+A6h Unnasigned_A6
+A7h Unnasigned_A7
+A8h Unnasigned_A8
+A9h Unnasigned_A9
+AAh Unnasigned_AA
+ABh Unnasigned_AB
+ACh Unnasigned_AC
+ADh Unnasigned_AD
+AEh Unnasigned_AE
+AFh Unnasigned_AF
+B0h Pentium(R) III Xeon(TM) processor
+B1h Pentium(R) III Processor with Intel(R) SpeedStep(TM) Technology
+B2h Pentium(R) 4 Processor
+B3h Intel(R) Xeon(TM)
+B4h AS400 Family
+B5h Intel(R) Xeon(TM) processor MP
+B6h AMD Athlon(TM) XP Processor Family
+B7h AMD Athlon(TM) MP Processor Family
+B8h Intel(R) Itanium(R) 2 processor
+B9h Intel(R) Pentium(R) M processor
+BAh Unnasigned_BA
+BBh Unnasigned_BB
+BCh Unnasigned_BC
+BDh Unnasigned_BD
+BEh Unnasigned_BE
+BFh Unnasigned_BF
+C0h Unnasigned_C0
+C1h Unnasigned_C1
+C2h Unnasigned_C2
+C3h Unnasigned_C3
+C4h Unnasigned_C4
+C5h Unnasigned_C5
+C6h Unnasigned_C6
+C7h Unnasigned_C7
+C8h IBM390 Family
+C9h G4
+CAh G5
+CBh Unnasigned_CB
+CCh Unnasigned_CC
+CDh Unnasigned_CD
+CEh Unnasigned_CE
+CFh Unnasigned_CF
+D0h Unnasigned_D0
+D1h Unnasigned_D1
+D2h Unnasigned_D2
+D3h Unnasigned_D3
+D4h Unnasigned_D4
+D5h Unnasigned_D5
+D6h Unnasigned_D6
+D7h Unnasigned_D7
+D8h Unnasigned_D8
+D9h Unnasigned_D9
+DAh Unnasigned_DA
+DBh Unnasigned_DB
+DCh Unnasigned_DC
+DDh Unnasigned_DD
+DEh Unnasigned_DE
+DFh Unnasigned_DF
+E0h Unnasigned_E0
+E1h Unnasigned_E1
+E2h Unnasigned_E2
+E3h Unnasigned_E3
+E4h Unnasigned_E4
+E5h Unnasigned_E5
+E6h Unnasigned_E6
+E7h Unnasigned_E7
+E8h Unnasigned_E8
+E9h Unnasigned_E9
+EAh Unnasigned_EA
+EBh Unnasigned_EB
+ECh Unnasigned_EC
+EDh Unnasigned_ED
+EEh Unnasigned_EE
+EFh Unnasigned_EF
+F0h Unnasigned_F0
+F1h Unnasigned_F1
+F2h Unnasigned_F2
+F3h Unnasigned_F3
+F4h Unnasigned_F4
+F5h Unnasigned_F5
+F6h Unnasigned_F6
+F7h Unnasigned_F7
+F8h Unnasigned_F8
+F9h Unnasigned_F9
+FAh i860
+FBh i960
+FCh Unnasigned_FC
+FDh Unnasigned_FD
+FEh Unnasigned_FE
+FFh Unnasigned_FF
