@@ -205,7 +205,7 @@ end;
 function mul100_mr(const A: pintar): integer;
 // multiply by 100, realloc mem if needed
 asm
-  test eax,eax; jz @STOP; // tired testing this,
+  //test eax,eax; jz @STOP; // tired testing this,
   mov edx,[eax-4]
   push esi;
   push edi;
@@ -443,42 +443,29 @@ type
 
 procedure bincx(const B; const size: tSize; const num: integer); assembler;
 asm
-  test eax,eax
   push ebx
-  sete bl
-  test edx,edx
-  movzx ebx,bl
-  setle bh
-  or bh,bl
-  jnz @Stop // //jcxz @Stop
-
   mov ebx,[eax]
-  add ebx,ecx
-  mov ecx,edx;
-  mov [eax],ebx
-
-  jnb @Stop
-  dec ecx
-  jl @Stop
-@Loop:
-  mov edx,[eax]
   lea eax,eax+4
-  adc edx,0
-  dec ecx
-  mov [eax-4],edx
+  dec edx
+  add ebx,ecx
+  jl @Stop
+  mov [eax],ebx
   jnb @Stop
-  jg @Loop
-@Stop: pop ebx;
+  mov ecx,edx
+  @Loop:
+    mov edx,[eax]
+    lea eax,eax+4
+    adc edx,0
+    dec ecx
+    jl @Stop
+    mov [eax-4],edx
+    jc @Loop
+  @Stop: pop ebx
 end;
 
 procedure binc1(const B; const size: tSize); assembler;
 asm
-  test eax,eax; setz cl;
-  test edx,edx;
-  movzx ecx,cl; setle ch
-  test ecx,ecx;
   mov ecx,edx
-  jnz @Stop
   xor edx,edx
   cmp edx,1
 @Loop:
@@ -486,20 +473,15 @@ asm
   lea eax,eax+4
   adc edx,0
   dec ecx
+  jl @Stop
   mov [eax-4],edx
-  jnb @Stop
-  jg @Loop
+  jc @Loop
 @Stop:
 end;
 
 procedure bdec1(const B; const size: tSize); assembler;
 asm
-  test eax,eax; setz cl;
-  test edx,edx;
-  movzx ecx,cl; setle ch
-  test ecx,ecx
   mov ecx,edx
-  jnz @Stop
   xor edx,edx
   cmp edx,1
 @Loop:
@@ -507,10 +489,59 @@ asm
   lea eax,eax+4
   sbb edx,0
   dec ecx
+  jl @Stop
   mov [eax-4],edx
-  jnb @Stop
-  jg @Loop
+  jc @Loop
 @Stop:
+end;
+
+procedure _double(const A; const size: tSize); overload;
+//no checking - will overwrite only if carry (no zero overwrite if not carry)
+asm
+  push ebx; push esi;
+  mov ebx,[eax]
+  mov esi,[eax+4]
+  shl ebx,1
+@Loop:
+  dec edx
+  mov ecx,[eax+8]
+  jl @Stop
+  mov [eax],ebx
+  mov ebx,esi
+  mov esi,ecx
+  lea eax,eax+4
+  rcl ebx,1
+  jmp @Loop
+  setc cl
+  jnb @Stop
+  movzx ecx,cl
+  mov [eax],ecx
+@Stop: pop esi; pop ebx;
+end;
+
+procedure _double(const A; const size: tSize; const cutOverflow: boolean); overload;
+asm
+  push ebx; push esi; push edi;
+  mov ebx,[eax]
+  mov esi,[eax+4]
+  shl ebx,1
+@Loop:
+  dec edx
+  mov edi,[eax+8]
+  jl @done
+  mov [eax],ebx
+  mov ebx,esi
+  mov esi,edi
+  lea eax,eax+4
+  rcl ebx,1
+  jmp @Loop
+  setc bl
+  jnc @done
+  or cl,bl
+  movzx ebx,bl
+  jnz @done
+  mov [eax],ebx
+@done: pop edi; pop esi; pop ebx;
 end;
 
 procedure shrr6(const B; const size: tSize); assembler;
@@ -942,13 +973,12 @@ type
 
 var
   lrhandler: tpairhandler;
-  rolls, rolx5, rcix5, idx5, k5pos: integer;
+  rolls, rolx5, rcix5, idx5: integer; //, k5pos: integer;
   index: tmux;
   p, q: pintar;
   newsize, bigsize: integer;
   params: tlrparams;
   numthr: integer;
-  multexovr: integer;
 
 var
   B: pintar;
@@ -990,10 +1020,10 @@ begin
   ordinals.fastmove(blog.Bin^, p^, realsize * 4);
   //pint64(p[realsize])^ := 0;
 
-  //newsize := realsize + 1;
+  newsize := realsize + 1;
   if multex(p^, realsize, rcvmux[index]) = 0 then begin
-    dec(bigsize);
-    //dec(newsize);
+    //dec(bigsize);
+    dec(newsize);
   end;
   pint64(p[newsize])^ := 0;
 
@@ -1009,7 +1039,7 @@ begin
       //               ba987ba9876543210     |
       //                    6543210          |
   if rolls > 1 then begin
-    newsize := bigsize - rcix5; // from 0 to g inclusive
+    //newsize := bigsize - rcix5; // from 0 to g inclusive
     q := @B[idx5 + newsize]; // at point R2:c or R3:7
     p := @B[newsize - rolx5]; // at point R1:c or R1.7
 
@@ -1026,20 +1056,21 @@ begin
     numthr := 1;
     if rolls > 2 then begin
       inc(numthr);
-      //lrhandler.handles[left] := CreateThread(nil, 0, @thrl, @params, 0, lrhandler.ids[left]);
-      thrl(@params);
+      //thrl(@params);
+      lrhandler.handles[left] := CreateThread(nil, 0, @thrl, @params, 0, lrhandler.ids[left]);
     end;
 
-    //lrhandler.handles[right] := CreateThread(nil, 0, @thrr, @params, 0, lrhandler.ids[right]);
-    thrr(@params);
-    {*****************************************************************
+    //thrr(@params);
+    lrhandler.handles[right] := CreateThread(nil, 0, @thrr, @params, 0, lrhandler.ids[right]);
+
+    {*****************************************************************}
     WaitForMultipleObjects(numthr, @lrhandler.handles, true, rltimeout);
     CloseHandle(lrhandler.handles[left]);
     CloseHandle(lrhandler.handles[right]);
-    *****************************************************************}
+    {*****************************************************************}
 
-      //bincx(B[k5pos + 1], size - k5pos, B^[k5pos]);
-      //ordinals.fastMove(B[k5pos + 1], B[k5pos], size - k5pos);
+    //bincx(B[k5pos + 1], size - k5pos, B^[k5pos]);
+    //ordinals.fastMove(B[k5pos + 1], B[k5pos], size - k5pos);
   end;
 
   Result := 0;
@@ -1080,6 +1111,7 @@ var
   xhandlers: tmuxhandlers;
 
 begin
+  Result := -1;
   if realSize < 3 then
     case integer(realSize) of
       0..2: begin
@@ -1109,25 +1141,24 @@ begin
       end;
 
   for mx := low(mx) to hix do begin
-    //xhandlers.handles[mx] := CreateThread(nil, 0, @throll, @blogs[mx], 0, xhandlers.ids[mx]);
-    throll(@blogs[mx]);
+    //throll(@blogs[mx]);
+    xhandlers.handles[mx] := CreateThread(nil, 0, @throll, @blogs[mx], 0, xhandlers.ids[mx]);
   end;
 
-{*****************************************************************
+{*****************************************************************}
   WaitForMultipleObjects(hix, @xhandlers.handles, true, timeout);
   for mx := low(mx) to hix do begin
     CloseHandle(xhandlers.handles[mx]);
   end;
-*****************************************************************}
+{*****************************************************************}
 
   Result := 0;
 end;
 
 function _getRealSize(const p; const size: tSize; const getTopInstead: boolean = false): integer; assembler;
 asm // length is simply top + 1
-  test eax,eax;
+  test eax,eax; jz @Stop // give me null, please..
   movzx ecx,cl
-  jz @Stop // give me null, please..
   and cl,1
   lea eax,eax+edx*4-4
   add edx,1
